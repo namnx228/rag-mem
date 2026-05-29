@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rag-mem"
+version = "0.1.0"
+description = "RAG memory system over a directory of Markdown files. Exposes three retrievers: semantic (OpenAI embeddings), BM25 (lexical), and GraphRAG (llama-index PropertyGraphIndex + Kuzu)."
+requires-python = ">=3.10"
+dependencies = [
+  "numpy>=1.26",
+  "bm25s>=0.2",
+  "openai>=1.40",
+  "anthropic>=0.40",
+  "llama-index-core>=0.12",
+  "llama-index-llms-anthropic>=0.6",
+  "llama-index-embeddings-openai>=0.3",
+  "llama-index-graph-stores-kuzu>=0.7",
+  "kuzu>=0.7",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
+[project.scripts]
+ragmem = "ragmem.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["ragmem*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+pythonpath = ["."]
