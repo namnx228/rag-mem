@@ -68,13 +68,35 @@ Strict TDD; official SDKs only; dependency injection everywhere; mock at the SDK
 No test touches the network. The live smoke below is the only step that calls
 real APIs.
 
-### Live smoke (manual — costs API calls)
+### Live smoke (manual — costs a few cents of API calls)
+
+A small fixture knowledge base ships at `tests/fixtures/mini_kb` (a fictional
+robotics company). `build` runs Haiku extraction + embeddings once and caches
+everything under `tests/fixtures/mini_kb/.ragmem`:
 
 ```bash
-ragmem build tests/fixtures/mini_kb
-ragmem search tests/fixtures/mini_kb --semantic "..." -k 3
-ragmem search tests/fixtures/mini_kb --graphrag "..." -k 3
+ragmem build  tests/fixtures/mini_kb
+ragmem search tests/fixtures/mini_kb --semantic "who runs the company?" -k 3
+ragmem search tests/fixtures/mini_kb --bm25     "Beacon fleet controller" -k 3
+ragmem search tests/fixtures/mini_kb --graphrag "Who leads the Pathfinder team?" -k 3
 ```
+
+A search on an un-built KB builds (and caches) the indexes first, so `build`
+once and then `search` repeatedly.
+
+## How GraphRAG works (v0.1)
+
+1. **Extract** — Anthropic `claude-haiku-4-5` extracts `subject -> relation ->
+   object` triples from each chunk (llama-index `SimpleLLMPathExtractor`).
+2. **Store** — triples go into an embedded **Kuzu** property graph under
+   `<kb>/.ragmem/graph`, reused on the next build while the source is unchanged
+   (no re-extraction).
+3. **Retrieve** — the query's keywords are matched to graph entities; the
+   connected relationships are attributed back to the source chunks whose text
+   mentions the query-relevant entities, and chunks are ranked by matched score.
+
+v0.1 is deliberately lightweight: no Kuzu vector index, and no community/global
+summarization. Graph retrieval gets more selective as the knowledge base grows.
 
 ## Design
 

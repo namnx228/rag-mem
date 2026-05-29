@@ -67,6 +67,7 @@ class KnowledgeBase:
                 llm=graph_llm,
                 embed_model=graph_embed_model,
                 persist_dir=persist_dir,
+                use_cache=use_cache,
             )
             if build_graphrag
             else None

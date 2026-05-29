@@ -46,11 +46,48 @@ def test_maps_retrieved_nodes_to_source_chunks():
     assert retr.queries == ["q"]
 
 
-def test_dedups_same_chunk_keeping_highest_score():
+def test_accumulates_score_across_multiple_hits():
     retr = FakeRetriever([_nws("d.md::0", 0.3), _nws("d.md::0", 0.8)])
     results = GraphRagIndex.from_retriever([_chunk(0)], retr).search("q", k=5)
     assert len(results) == 1
-    assert results[0].score == 0.8
+    assert abs(results[0].score - 1.1) < 1e-9
+
+
+def test_triplet_nodes_map_to_chunks_by_entity_text():
+    chunks = [
+        Chunk(
+            id="p.md::0", doc_path="p.md", heading_path=(),
+            text="The Pathfinder team is led by Raj Patel.", start_line=1, end_line=1,
+        ),
+        Chunk(
+            id="c.md::0", doc_path="c.md", heading_path=(),
+            text="Maya Chen is the CEO.", start_line=1, end_line=1,
+        ),
+    ]
+    triplets = [
+        NodeWithScore(node=TextNode(text="Pathfinder team -> Led by -> Raj Patel"), score=1.0),
+        NodeWithScore(node=TextNode(text="Beacon -> Runs on -> Cloud"), score=0.5),
+    ]
+    results = GraphRagIndex.from_retriever(chunks, FakeRetriever(triplets)).search(
+        "who leads the pathfinder team", k=5
+    )
+    assert [r.chunk.id for r in results] == ["p.md::0"]  # c.md / Beacon triplet irrelevant
+    assert results[0].source == "graphrag"
+    assert abs(results[0].score - 1.0) < 1e-9
+
+
+def test_triplets_unrelated_to_query_are_ignored():
+    chunks = [
+        Chunk(
+            id="b.md::0", doc_path="b.md", heading_path=(),
+            text="Beacon runs on the cloud.", start_line=1, end_line=1,
+        ),
+    ]
+    triplets = [NodeWithScore(node=TextNode(text="Beacon -> Runs on -> Cloud"), score=1.0)]
+    results = GraphRagIndex.from_retriever(chunks, FakeRetriever(triplets)).search(
+        "pathfinder navigation", k=5
+    )
+    assert results == []
 
 
 def test_skips_nodes_without_a_known_chunk_id():
