@@ -39,3 +39,25 @@ directory of Markdown files. Exposes three retrievers on `KnowledgeBase`:
   `embed_dimension`) for hybrid graph+vector retrieval; `search --bm25` still
   builds embeddings (facade builds semantic+bm25 together) — make per-retriever
   build lazy; incremental updates; MCP wrapper over the same facade.
+
+## Design direction (v0.2 — decided 2026-05-29 with the user)
+Guiding principle: **embedded only, no database service** to operate, ever.
+- **Vectors: LanceDB** (replaces in-memory numpy) — embedded, serverless, scales to
+  millions on disk, native metadata/tag filtering. Chosen after rejecting (all
+  verified online): pgvector (needs a Postgres service); Qdrant (embedded/local
+  mode caps ~20k points, a few million needs the Qdrant *server*); sqlite-vec
+  (brute-force only, slow past ~1M); vectorlite (beta, rowid-only filtering, index
+  not stored in the SQLite file, SIMD off on ARM → 3–4× slower).
+- **Lexical: keep bm25s** — real BM25 (Postgres native FTS is not BM25 / no IDF).
+  Persist to disk + `mmap`; reindex **in batch or on explicit user request**, not
+  live (bm25s has no incremental insert — full rebuild on change).
+- **Graph: keep Kuzu** (embedded).
+- **Conversations (future): SQLite** (embedded, no service).
+- **Tag filtering** on semantic search via LanceDB metadata filters; add `tags` to
+  `Chunk` + a `filters`/`tags` arg on the search functions.
+- **Reranking** planned: over-retrieve → cross-encoder/LLM rerank → top-k, behind
+  the facade (highest-leverage RAG quality gain).
+- Scale target: a few million chunks. **User is on ARM (aarch64)** — relevant to
+  any SIMD-sensitive choice.
+- Migration shape: keep the `KnowledgeBase` facade; swap the semantic store
+  (numpy → LanceDB) behind it so the 3 functions don't change.

@@ -98,6 +98,40 @@ once and then `search` repeatedly.
 v0.1 is deliberately lightweight: no Kuzu vector index, and no community/global
 summarization. Graph retrieval gets more selective as the knowledge base grows.
 
-## Design
+## Design decisions
+
+**Guiding principle: embedded only — no database *service* to run, now or later.**
+Every component is in-process / file-based, so the system is a library you import,
+not infrastructure you operate.
+
+| Concern | Choice | Status | Why |
+|---|---|---|---|
+| Vector / semantic | **LanceDB** (embedded, on-disk, ANN + metadata filtering) | planned (v0.2) | Serverless and scales to millions on a single node, with native tag filtering. v0.1 currently uses in-memory NumPy cosine. |
+| Lexical | **bm25s** | v0.1 (disk persist planned) | Real BM25 — Postgres native FTS is *not* BM25 (no IDF). Persists to disk with `mmap`; reindexed **in batch or on explicit request**, not live. |
+| Graph | **Kuzu** (embedded property graph) | v0.1 | Embedded "SQLite for graphs"; extraction by `claude-haiku-4-5`, persisted + reused. |
+| Conversations | **SQLite** | planned | Embedded, no service — fits the principle. |
+| Embeddings | OpenAI `text-embedding-3-small` | v0.1 | Quality/cost; the only hosted call on the read path. |
+
+**Scale target:** a few million chunks.
+
+**Why LanceDB for vectors** (rejected alternatives):
+- **pgvector** — strong, but needs a **running Postgres service**. Rejected: no services.
+- **Qdrant** — its embedded/local mode caps at ~20k points; a few million needs the **Qdrant server** (a service). Rejected for the same reason.
+- **sqlite-vec** — truly one-SQLite-file, but **brute-force only** today → too slow past ~1M vectors.
+- **vectorlite** — SQLite + HNSW, but beta, rowid-only filtering, the index lives *outside* the DB (so not really one file), and **SIMD is disabled on ARM (3–4× slower)**.
+- **LanceDB** — the only option that is embedded *and* scales to millions *and* has first-class metadata/tag filtering.
+
+**Tag filtering:** LanceDB filters vector results by metadata, so `semantic_search`
+will gain a `tags` / `filters` argument (the `Chunk` model gets a `tags` field).
+
+**Reranking (planned):** a post-retrieval reranker (cross-encoder / LLM) behind the
+facade — over-retrieve top-N → rerank → top-k — since reranking is the
+highest-leverage RAG quality gain.
+
+> v0.1 as shipped uses in-memory NumPy for vectors + `bm25s` + Kuzu. LanceDB,
+> SQLite conversations, disk-persisted bm25s, and tag filtering are the agreed
+> **v0.2 direction**, not yet implemented.
+
+## Design notes
 
 See `docs/superpowers/plans/2026-05-29-rag-mem-system-v0.1.md`.
