@@ -16,6 +16,7 @@ from ragmem.index.bm25 import Bm25Index
 from ragmem.index.graphrag import GraphRagIndex
 from ragmem.index.semantic import SemanticIndex
 from ragmem.loader import load_markdown
+from ragmem.persistence import load_semantic, save_semantic
 from ragmem.types import Chunk, SearchResult
 
 
@@ -42,17 +43,23 @@ class KnowledgeBase:
         graph_llm: Any | None = None,
         graph_embed_model: Any | None = None,
         persist_dir: str | Path | None = None,
+        use_cache: bool = True,
         build_graphrag: bool = True,
     ) -> "KnowledgeBase":
         """Load + chunk every ``.md`` file under *path* and build the indexes.
 
         ``build_graphrag=True`` (default) runs LLM extraction over the corpus and
         requires ``ANTHROPIC_API_KEY`` (and ``OPENAI_API_KEY`` for embeddings).
+        With ``use_cache`` the embedding matrix is cached under ``persist_dir``
+        (default ``<path>/.ragmem``) and reused while the source is unchanged.
         """
+        path = Path(path)
+        if persist_dir is None:
+            persist_dir = path / ".ragmem"
         chunks = [chunk for doc in load_markdown(path) for chunk in chunk_document(doc)]
         embedder = embedder or make_embedder()
 
-        semantic = SemanticIndex.build(chunks, embedder)
+        semantic = cls._build_or_load_semantic(chunks, embedder, persist_dir, use_cache)
         bm25 = Bm25Index.build(chunks)
         graphrag = (
             GraphRagIndex.build(
@@ -65,6 +72,20 @@ class KnowledgeBase:
             else None
         )
         return cls(chunks, semantic=semantic, bm25=bm25, graphrag=graphrag)
+
+    @staticmethod
+    def _build_or_load_semantic(
+        chunks: list[Chunk], embedder: Any, persist_dir: str | Path, use_cache: bool
+    ) -> SemanticIndex:
+        model = getattr(embedder, "model", "unknown")
+        if use_cache:
+            cached = load_semantic(persist_dir, chunks, model)
+            if cached is not None:
+                return SemanticIndex.from_matrix(chunks, cached, embedder)
+        semantic = SemanticIndex.build(chunks, embedder)
+        if use_cache:
+            save_semantic(persist_dir, chunks, semantic.matrix, model)
+        return semantic
 
     @property
     def chunks(self) -> list[Chunk]:

@@ -20,6 +20,10 @@ class OpenAIEmbedder:
         self._client = client
         self._model = model
 
+    @property
+    def model(self) -> str:
+        return self._model
+
     def embed_texts(self, texts: Sequence[str]) -> np.ndarray:
         """Embed many texts -> float32 matrix of shape (len(texts), dim)."""
         texts = list(texts)

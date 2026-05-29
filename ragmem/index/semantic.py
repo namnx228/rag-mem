@@ -28,6 +28,18 @@ class SemanticIndex:
         vectors = embedder.embed_texts([c.embedding_text for c in chunks])
         return cls(chunks, _normalize_rows(np.asarray(vectors, dtype=np.float32)), embedder)
 
+    @classmethod
+    def from_matrix(
+        cls, chunks: list[Chunk], matrix: np.ndarray, embedder: OpenAIEmbedder
+    ) -> "SemanticIndex":
+        """Wrap an already-normalized matrix (loaded from cache)."""
+        return cls(list(chunks), np.asarray(matrix, dtype=np.float32), embedder)
+
+    @property
+    def matrix(self) -> np.ndarray:
+        """The L2-normalized embedding matrix (what persistence caches)."""
+        return self._matrix
+
     def search(self, query: str, k: int = 5) -> list[SearchResult]:
         if not self._chunks or k <= 0:
             return []
