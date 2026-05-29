@@ -17,8 +17,9 @@ class FakeKB:
         self._chunks = chunks or []
         self.calls = {}
 
-    def semantic_search(self, q, k):
+    def semantic_search(self, q, k, tags=None):
         self.calls["semantic"] = (q, k)
+        self.semantic_tags = tags
         return self._results
 
     def bm25_search(self, q, k):
@@ -55,6 +56,21 @@ def test_search_semantic_dispatches_and_prints(capsys):
     assert rc == 0
     assert kb.calls["semantic"] == ("my query", 3)
     assert "a.md" in capsys.readouterr().out
+
+
+def test_search_semantic_passes_tags():
+    kb = FakeKB([_result("a.md", 0.9)])
+    main(
+        ["search", "kb", "--semantic", "q", "--tag", "billing", "--tag", "auth"],
+        kb_factory=lambda *a, **k: kb,
+    )
+    assert kb.semantic_tags == ["billing", "auth"]
+
+
+def test_search_without_tag_passes_none():
+    kb = FakeKB([_result("a.md", 0.9)])
+    main(["search", "kb", "--semantic", "q"], kb_factory=lambda *a, **k: kb)
+    assert kb.semantic_tags is None
 
 
 def test_search_bm25_uses_default_k():

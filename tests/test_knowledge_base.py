@@ -31,7 +31,7 @@ class StubIndex:
         self.results = results
         self.calls = []
 
-    def search(self, query, k):
+    def search(self, query, k, tags=None):
         self.calls.append((query, k))
         return self.results
 

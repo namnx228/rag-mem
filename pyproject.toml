@@ -4,11 +4,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "rag-mem"
-version = "0.1.0"
-description = "RAG memory system over a directory of Markdown files. Exposes three retrievers: semantic (OpenAI embeddings), BM25 (lexical), and GraphRAG (llama-index PropertyGraphIndex + Kuzu)."
+version = "0.2.0"
+description = "RAG memory system over a directory of Markdown files. Exposes three retrievers: semantic (OpenAI embeddings, embedded LanceDB vector store), BM25 (lexical), and GraphRAG (llama-index PropertyGraphIndex + Kuzu)."
 requires-python = ">=3.10"
 dependencies = [
   "numpy>=1.26",
+  "lancedb>=0.13",
+  "pyarrow>=14",
   "bm25s>=0.2",
   "openai>=1.40",
   "anthropic>=0.40",

@@ -7,11 +7,12 @@ functions** over that knowledge base:
 
 | Function | What it does | Backend |
 |---|---|---|
-| `semantic_search` | Dense vector similarity | OpenAI `text-embedding-3-small` + numpy cosine |
+| `semantic_search` | Dense vector similarity (+ tag filter) | OpenAI `text-embedding-3-small` + embedded **LanceDB** |
 | `bm25_search` | Lexical / keyword ranking | `bm25s` |
 | `graphrag_search` | Entity-graph retrieval | llama-index `PropertyGraphIndex` + embedded **Kuzu** (extraction by Anthropic `claude-haiku-4-5`) |
 
-v0.1 is **read-only** retrieval over a fixed directory (`.md` only).
+Read-only retrieval over a fixed directory (`.md` only). v0.2 stores the vectors in an
+embedded, on-disk **LanceDB** table and supports tag-filtered semantic search.
 
 ## Install
 
@@ -39,6 +40,9 @@ for r in kb.semantic_search("how does auth work?", k=5):
 
 kb.bm25_search("refresh token", k=5)
 kb.graphrag_search("who owns the billing service?", k=5)
+
+# Restrict semantic results to chunks carrying any of the given tags (OR):
+kb.semantic_search("how does auth work?", k=5, tags=["billing", "auth"])
 ```
 
 Each call returns a list of `SearchResult(chunk, score, source, detail)`.
@@ -48,6 +52,7 @@ Each call returns a list of `SearchResult(chunk, score, source, detail)`.
 ```bash
 ragmem build  path/to/knowledge                       # build + cache the indexes
 ragmem search path/to/knowledge --semantic "query" -k 5
+ragmem search path/to/knowledge --semantic "query" --tag billing --tag auth  # tag-filtered
 ragmem search path/to/knowledge --bm25     "query"
 ragmem search path/to/knowledge --graphrag "query"
 ragmem info   path/to/knowledge                       # docs / chunks / cache status
@@ -106,7 +111,7 @@ not infrastructure you operate.
 
 | Concern | Choice | Status | Why |
 |---|---|---|---|
-| Vector / semantic | **LanceDB** (embedded, on-disk, ANN + metadata filtering) | planned (v0.2) | Serverless and scales to millions on a single node, with native tag filtering. v0.1 currently uses in-memory NumPy cosine. |
+| Vector / semantic | **LanceDB** (embedded, on-disk, flat search + metadata filtering) | **v0.2** | Serverless and scales to millions on a single node, with native tag filtering. Replaced the v0.1 in-memory NumPy cosine. (Flat/exact search for now; an ANN index is future work.) |
 | Lexical | **bm25s** | v0.1 (disk persist planned) | Real BM25 — Postgres native FTS is *not* BM25 (no IDF). Persists to disk with `mmap`; reindexed **in batch or on explicit request**, not live. |
 | Graph | **Kuzu** (embedded property graph) | v0.1 | Embedded "SQLite for graphs"; extraction by `claude-haiku-4-5`, persisted + reused. |
 | Conversations | **SQLite** | planned | Embedded, no service — fits the principle. |
@@ -122,15 +127,19 @@ not infrastructure you operate.
 - **LanceDB** — the only option that is embedded *and* scales to millions *and* has first-class metadata/tag filtering.
 
 **Tag filtering:** LanceDB filters vector results by metadata, so `semantic_search`
-will gain a `tags` / `filters` argument (the `Chunk` model gets a `tags` field).
+takes an optional `tags` argument and `Chunk` carries a `tags` field. A chunk matches if
+it has *any* of the requested tags (OR), applied as a prefilter so the top-k is taken
+over matching rows. Populating tags from the source (e.g. YAML front-matter) is a later
+slice — chunks carry no tags until then.
 
 **Reranking (planned):** a post-retrieval reranker (cross-encoder / LLM) behind the
 facade — over-retrieve top-N → rerank → top-k — since reranking is the
 highest-leverage RAG quality gain.
 
-> v0.1 as shipped uses in-memory NumPy for vectors + `bm25s` + Kuzu. LanceDB,
-> SQLite conversations, disk-persisted bm25s, and tag filtering are the agreed
-> **v0.2 direction**, not yet implemented.
+> **v0.2 (shipped):** LanceDB on-disk vectors + tag filtering, replacing the v0.1
+> in-memory NumPy cosine. Still agreed but not yet implemented: reranking,
+> disk-persisted `bm25s`, SQLite conversations, tag population from source, and an ANN
+> index (flat/exact cosine search for now).
 
 ## Design notes
 

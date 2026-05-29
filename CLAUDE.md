@@ -1,7 +1,7 @@
 # CLAUDE.md — rag-mem
 
-RAG memory system over a directory of Markdown files. v0.1 exposes three retrievers
-on a `KnowledgeBase`: `semantic_search`, `bm25_search`, `graphrag_search`.
+RAG memory system over a directory of Markdown files. Exposes three retrievers on a
+`KnowledgeBase`: `semantic_search` (LanceDB, tag-filterable), `bm25_search`, `graphrag_search`.
 
 ## Iron rules
 - **TDD always.** Failing pytest → confirm RED → minimal impl → green → refactor. No production code before a red test.
@@ -16,8 +16,8 @@ on a `KnowledgeBase`: `semantic_search`, `bm25_search`, `graphrag_search`.
 - venv at `venv/`. Use `./venv/bin/python` and `./venv/bin/pytest`.
 - Never commit `venv/`, `.env`, `.ragmem/`, `.pytest_cache/`.
 
-## Providers (v0.1)
-- Semantic embeddings: OpenAI `text-embedding-3-small` (numpy cosine, in-memory).
+## Providers
+- Semantic embeddings: OpenAI `text-embedding-3-small`, stored in an embedded **LanceDB** table on disk (`<kb>/.ragmem/vectors.lance`); cosine flat search, native tag filtering. `manifest.json` (content hash + model) tracks freshness so re-embedding only happens when the source/chunking/model changes. LanceDB + `pyarrow` are local libraries (no service), mocked-free in tests by using a real table on `tmp_path`.
 - BM25: `bm25s` (lexical).
 - GraphRAG: llama-index `PropertyGraphIndex` over an embedded **Kuzu** graph store; extraction LLM Anthropic `claude-haiku-4-5`, embeddings reuse OpenAI.
 

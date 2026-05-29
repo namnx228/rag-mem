@@ -28,6 +28,7 @@ class Chunk:
     text: str  # the section body (heading line excluded)
     start_line: int  # 1-based line in the source document where the chunk starts
     end_line: int  # 1-based inclusive end line
+    tags: tuple[str, ...] = ()  # metadata labels for filtered semantic search
 
     @property
     def heading_breadcrumb(self) -> str:

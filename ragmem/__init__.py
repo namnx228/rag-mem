@@ -6,4 +6,4 @@ from ragmem.knowledge_base import KnowledgeBase
 from ragmem.types import Chunk, Document, SearchResult
 
 __all__ = ["Chunk", "Document", "KnowledgeBase", "SearchResult"]
-__version__ = "0.1.0"
+__version__ = "0.2.0"

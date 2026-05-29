@@ -52,6 +52,13 @@ def build_parser() -> argparse.ArgumentParser:
     mode.add_argument("--bm25", action="store_true", help="Lexical BM25 search.")
     mode.add_argument("--graphrag", action="store_true", help="Entity-graph search.")
     search.add_argument("-k", "--top-k", type=int, default=5, dest="top_k")
+    search.add_argument(
+        "--tag",
+        action="append",
+        dest="tags",
+        metavar="TAG",
+        help="Restrict semantic results to chunks carrying any of these tags (repeatable).",
+    )
     search.add_argument("--persist-dir", default=None)
 
     info = sub.add_parser("info", help="Show document/chunk counts and cache status.")
@@ -86,7 +93,10 @@ def _cmd_search(args: argparse.Namespace, kb_factory: Callable[..., Any]) -> int
     kb = kb_factory(
         args.kb_dir, build_graphrag=(mode == "graphrag"), persist_dir=args.persist_dir
     )
-    results = getattr(kb, f"{mode}_search")(args.query, args.top_k)
+    if mode == "semantic":
+        results = kb.semantic_search(args.query, args.top_k, tags=args.tags)
+    else:
+        results = getattr(kb, f"{mode}_search")(args.query, args.top_k)
     print(format_results(results))
     return 0
 
