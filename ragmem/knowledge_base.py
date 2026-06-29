@@ -51,7 +51,7 @@ class KnowledgeBase:
         """Load + chunk every ``.md`` file under *path* and build the indexes.
 
         ``build_graphrag=True`` (default) runs LLM extraction over the corpus and
-        requires ``ANTHROPIC_API_KEY`` (and ``OPENAI_API_KEY`` for embeddings). With
+        requires ``OPENROUTER_API_KEY`` (for both extraction and embeddings). With
         ``use_cache`` the embedding vectors live in a LanceDB table under
         ``persist_dir`` (default ``<path>/.ragmem``) and are reused while the source
         is unchanged. ``vector_db`` injects a LanceDB connection (defaults to one

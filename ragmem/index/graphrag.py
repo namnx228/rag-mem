@@ -211,9 +211,15 @@ def _entities_match_query(entities: set[str], query_lower: str, query_tokens: se
 
 
 def _default_embed_model() -> Any:
+    import os
+
     from llama_index.embeddings.openai import OpenAIEmbedding
 
-    return OpenAIEmbedding(model="text-embedding-3-small")
+    return OpenAIEmbedding(
+        model="text-embedding-3-small",
+        api_base="https://openrouter.ai/api/v1",
+        api_key=os.environ.get("OPENROUTER_API_KEY"),
+    )
 
 
 def _kuzu_store(db_path: Path | None) -> Any:

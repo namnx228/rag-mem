@@ -7,9 +7,9 @@ functions** over that knowledge base:
 
 | Function | What it does | Backend |
 |---|---|---|
-| `semantic_search` | Dense vector similarity (+ tag filter) | OpenAI `text-embedding-3-small` + embedded **LanceDB** |
+| `semantic_search` | Dense vector similarity (+ tag filter) | `text-embedding-3-small` via OpenRouter + embedded **LanceDB** |
 | `bm25_search` | Lexical / keyword ranking | `bm25s` |
-| `graphrag_search` | Entity-graph retrieval | llama-index `PropertyGraphIndex` + embedded **Kuzu** (extraction by Anthropic `claude-haiku-4-5`) |
+| `graphrag_search` | Entity-graph retrieval | llama-index `PropertyGraphIndex` + embedded **Kuzu** (extraction by `anthropic/claude-haiku-4-5` via OpenRouter) |
 
 Read-only retrieval over a fixed directory (`.md` only). v0.2 stores the vectors in an
 embedded, on-disk **LanceDB** table and supports tag-filtered semantic search.
@@ -25,8 +25,7 @@ cp .env.example .env                                 # then fill in keys
 
 Required keys (in `.env` or the environment):
 
-- `OPENAI_API_KEY` — semantic embeddings.
-- `ANTHROPIC_API_KEY` — GraphRAG entity/relation extraction.
+- `OPENROUTER_API_KEY` — all API calls (embeddings + GraphRAG extraction) route through OpenRouter.
 
 ## Library usage
 

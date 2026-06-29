@@ -41,11 +41,19 @@ class OpenAIEmbedder:
         return np.asarray(resp.data[0].embedding, dtype=np.float32)
 
 
+_DEFAULT_BASE_URL = "https://openrouter.ai/api/v1"
+
+
 def make_embedder(client: Any | None = None, model: str = DEFAULT_MODEL) -> OpenAIEmbedder:
     if client is None:
+        import os
+
         from openai import OpenAI
 
-        client = OpenAI()  # reads OPENAI_API_KEY from the environment
+        client = OpenAI(
+            api_key=os.environ.get("OPENROUTER_API_KEY"),
+            base_url=_DEFAULT_BASE_URL,
+        )
     return OpenAIEmbedder(client, model)
 
 

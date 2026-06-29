@@ -17,9 +17,10 @@ RAG memory system over a directory of Markdown files. Exposes three retrievers o
 - Never commit `venv/`, `.env`, `.ragmem/`, `.pytest_cache/`.
 
 ## Providers
-- Semantic embeddings: OpenAI `text-embedding-3-small`, stored in an embedded **LanceDB** table on disk (`<kb>/.ragmem/vectors.lance`); cosine flat search, native tag filtering. `manifest.json` (content hash + model) tracks freshness so re-embedding only happens when the source/chunking/model changes. LanceDB + `pyarrow` are local libraries (no service), mocked-free in tests by using a real table on `tmp_path`.
+All API calls route through OpenRouter (`OPENROUTER_API_KEY`).
+- Semantic embeddings: `text-embedding-3-small` via OpenRouter, stored in an embedded **LanceDB** table on disk (`<kb>/.ragmem/vectors.lance`); cosine flat search, native tag filtering. `manifest.json` (content hash + model) tracks freshness so re-embedding only happens when the source/chunking/model changes. LanceDB + `pyarrow` are local libraries (no service), mocked-free in tests by using a real table on `tmp_path`.
 - BM25: `bm25s` (lexical).
-- GraphRAG: llama-index `PropertyGraphIndex` over an embedded **Kuzu** graph store; extraction LLM Anthropic `claude-haiku-4-5`, embeddings reuse OpenAI.
+- GraphRAG: llama-index `PropertyGraphIndex` over an embedded **Kuzu** graph store; extraction LLM `anthropic/claude-haiku-4-5` via OpenRouter (`llama-index-llms-openai`), embeddings reuse OpenRouter.
 
 ## Commands
 - Test: `./venv/bin/pytest -v`
